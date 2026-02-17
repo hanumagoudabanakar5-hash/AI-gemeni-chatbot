@@ -20,16 +20,14 @@ export const Overview = () => {
           <MessageIcon />
         </p>
         <p>
-          This is an open source Chatbot template powered by the Google Gemini
-          model built with Next.js and the AI SDK by Vercel. It uses the{" "}
-          <code className="rounded-sm bg-muted-foreground/15 px-1.5 py-0.5">
-            streamText
-          </code>{" "}
-          function in the server and the{" "}
-          <code className="rounded-sm bg-muted-foreground/15 px-1.5 py-0.5">
-            useChat
-          </code>{" "}
-          hook on the client to create a seamless chat experience.
+          This is an AI-powered chatbot that helps engineering students find
+          good first issues in decentralized application (DApp) repositories.
+          Powered by Google Gemini and built with Next.js and the AI SDK by Vercel.
+        </p>
+        <p>
+          Ask me to find beginner-friendly repositories in blockchain, Web3,
+          Ethereum, DeFi, or other decentralized technologies. I'll search GitHub
+          for projects with good first issues suitable for 2nd year engineering students!
         </p>
         <p>
           {" "}

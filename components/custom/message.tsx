@@ -7,14 +7,9 @@ import { Streamdown } from "streamdown";
 
 import { BotIcon, UserIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "./weather";
-import { AuthorizePayment } from "../flights/authorize-payment";
-import { DisplayBoardingPass } from "../flights/boarding-pass";
-import { CreateReservation } from "../flights/create-reservation";
-import { FlightStatus } from "../flights/flight-status";
-import { ListFlights } from "../flights/list-flights";
-import { SelectSeats } from "../flights/select-seats";
-import { VerifyPayment } from "../flights/verify-payment";
+import { ListRepositories } from "../github/list-repositories";
+import { ListIssues } from "../github/list-issues";
+import { RepositoryDetails } from "../github/repository-details";
 
 export const Message = ({
   chatId,
@@ -56,46 +51,39 @@ export const Message = ({
 
                 return (
                   <div key={toolCallId}>
-                    {toolName === "getWeather" ? (
-                      <Weather weatherAtLocation={result} />
-                    ) : toolName === "displayFlightStatus" ? (
-                      <FlightStatus flightStatus={result} />
-                    ) : toolName === "searchFlights" ? (
-                      <ListFlights chatId={chatId} results={result} />
-                    ) : toolName === "selectSeats" ? (
-                      <SelectSeats chatId={chatId} availability={result} />
-                    ) : toolName === "createReservation" ? (
-                      Object.keys(result).includes("error") ? null : (
-                        <CreateReservation reservation={result} />
-                      )
-                    ) : toolName === "authorizePayment" ? (
-                      <AuthorizePayment intent={result} />
-                    ) : toolName === "displayBoardingPass" ? (
-                      <DisplayBoardingPass boardingPass={result} />
-                    ) : toolName === "verifyPayment" ? (
-                      <VerifyPayment result={result} />
+                    {toolName === "searchRepositories" ? (
+                      <ListRepositories chatId={chatId} results={result} />
+                    ) : toolName === "findGoodFirstIssues" ? (
+                      <ListIssues results={result} />
+                    ) : toolName === "getRepositoryDetails" ? (
+                      <RepositoryDetails repository={result} />
                     ) : (
-                      <div>{JSON.stringify(result, null, 2)}</div>
+                      <div className="rounded-lg bg-muted px-4 py-3">
+                        <pre className="text-xs overflow-x-auto">
+                          {JSON.stringify(result, null, 2)}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 );
               } else {
                 return (
                   <div key={toolCallId} className="skeleton">
-                    {toolName === "getWeather" ? (
-                      <Weather />
-                    ) : toolName === "displayFlightStatus" ? (
-                      <FlightStatus />
-                    ) : toolName === "searchFlights" ? (
-                      <ListFlights chatId={chatId} />
-                    ) : toolName === "selectSeats" ? (
-                      <SelectSeats chatId={chatId} />
-                    ) : toolName === "createReservation" ? (
-                      <CreateReservation />
-                    ) : toolName === "authorizePayment" ? (
-                      <AuthorizePayment />
-                    ) : toolName === "displayBoardingPass" ? (
-                      <DisplayBoardingPass />
+                    {toolName === "searchRepositories" ? (
+                      <div className="rounded-lg bg-muted px-4 py-3 animate-pulse">
+                        <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-full"></div>
+                      </div>
+                    ) : toolName === "findGoodFirstIssues" ? (
+                      <div className="rounded-lg bg-muted px-4 py-3 animate-pulse">
+                        <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-2/3 mb-2"></div>
+                        <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-full"></div>
+                      </div>
+                    ) : toolName === "getRepositoryDetails" ? (
+                      <div className="rounded-lg bg-muted px-4 py-3 animate-pulse">
+                        <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-1/2 mb-2"></div>
+                        <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-full"></div>
+                      </div>
                     ) : null}
                   </div>
                 );
