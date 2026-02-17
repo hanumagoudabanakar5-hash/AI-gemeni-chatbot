@@ -2,21 +2,12 @@ import { convertToCoreMessages, Message, streamText } from "ai";
 import { z } from "zod";
 
 import { geminiProModel } from "@/ai";
-import {
-  generateReservationPrice,
-  generateSampleFlightSearchResults,
-  generateSampleFlightStatus,
-  generateSampleSeatSelection,
-} from "@/ai/actions";
 import { auth } from "@/app/(auth)/auth";
 import {
-  createReservation,
   deleteChatById,
   getChatById,
-  getReservationById,
   saveChat,
 } from "@/db/queries";
-import { generateUUID } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const { id, messages }: { id: string; messages: Array<Message> } =
@@ -35,182 +26,145 @@ export async function POST(request: Request) {
   const result = await streamText({
     model: geminiProModel,
     system: `\n
-        - you help users book flights!
-        - keep your responses limited to a sentence.
-        - DO NOT output lists.
-        - after every tool call, pretend you're showing the result to the user and keep your response limited to a phrase.
-        - today's date is ${new Date().toLocaleDateString()}.
-        - ask follow up questions to nudge user into the optimal flow
-        - ask for any details you don't know, like name of passenger, etc.'
-        - C and D are aisle seats, A and F are window seats, B and E are middle seats
-        - assume the most popular airports for the origin and destination
-        - here's the optimal flow
-          - search for flights
-          - choose flight
-          - select seats
-          - create reservation (ask user whether to proceed with payment or change reservation)
-          - authorize payment (requires user consent, wait for user to finish payment and let you know when done)
-          - display boarding pass (DO NOT display boarding pass without verifying payment)
-        '
+        - You are a helpful assistant that helps engineering students find good first issues in GitHub repositories
+        - You specialize in finding repositories related to decentralized applications (DApps), blockchain, Web3, and related technologies
+        - When users ask for repository recommendations, search for repositories with "good-first-issue" labels
+        - Consider the user's skill level (e.g., 2nd year engineering student = beginner to intermediate)
+        - Look for repositories with good documentation, active communities, and beginner-friendly issues
+        - Provide clear explanations about why each repository is a good fit
+        - Today's date is ${new Date().toLocaleDateString()}
+        - Focus on decentralized technologies like: Ethereum, Solidity, Web3.js, IPFS, Smart Contracts, DeFi, NFTs, DAOs
       `,
     messages: coreMessages,
     tools: {
-      getWeather: {
-        description: "Get the current weather at a location",
+      searchRepositories: {
+        description: "Search for GitHub repositories related to decentralized applications",
         parameters: z.object({
-          latitude: z.number().describe("Latitude coordinate"),
-          longitude: z.number().describe("Longitude coordinate"),
+          topics: z.array(z.string()).describe("Topics to search for (e.g., 'blockchain', 'web3', 'ethereum', 'defi')"),
+          difficulty: z.enum(["beginner", "intermediate", "advanced"]).describe("Difficulty level for the student"),
         }),
-        execute: async ({ latitude, longitude }) => {
-          const response = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`,
-          );
+        execute: async ({ topics, difficulty }) => {
+          // Construct search query for GitHub API
+          const topicQuery = topics.map(t => `topic:${t}`).join("+");
+          const labelQuery = "label:good-first-issue+OR+label:beginner-friendly";
+          const query = `${topicQuery}+${labelQuery}+stars:>50`;
+          
+          try {
+            const response = await fetch(
+              `https://api.github.com/search/repositories?q=${query}&sort=stars&order=desc&per_page=5`,
+              {
+                headers: {
+                  "Accept": "application/vnd.github.v3+json",
+                  "User-Agent": "AI-Gemini-Chatbot"
+                }
+              }
+            );
 
-          const weatherData = await response.json();
-          return weatherData;
-        },
-      },
-      displayFlightStatus: {
-        description: "Display the status of a flight",
-        parameters: z.object({
-          flightNumber: z.string().describe("Flight number"),
-          date: z.string().describe("Date of the flight"),
-        }),
-        execute: async ({ flightNumber, date }) => {
-          const flightStatus = await generateSampleFlightStatus({
-            flightNumber,
-            date,
-          });
+            if (!response.ok) {
+              return { error: "Failed to fetch repositories from GitHub" };
+            }
 
-          return flightStatus;
-        },
-      },
-      searchFlights: {
-        description: "Search for flights based on the given parameters",
-        parameters: z.object({
-          origin: z.string().describe("Origin airport or city"),
-          destination: z.string().describe("Destination airport or city"),
-        }),
-        execute: async ({ origin, destination }) => {
-          const results = await generateSampleFlightSearchResults({
-            origin,
-            destination,
-          });
-
-          return results;
-        },
-      },
-      selectSeats: {
-        description: "Select seats for a flight",
-        parameters: z.object({
-          flightNumber: z.string().describe("Flight number"),
-        }),
-        execute: async ({ flightNumber }) => {
-          const seats = await generateSampleSeatSelection({ flightNumber });
-          return seats;
-        },
-      },
-      createReservation: {
-        description: "Display pending reservation details",
-        parameters: z.object({
-          seats: z.string().array().describe("Array of selected seat numbers"),
-          flightNumber: z.string().describe("Flight number"),
-          departure: z.object({
-            cityName: z.string().describe("Name of the departure city"),
-            airportCode: z.string().describe("Code of the departure airport"),
-            timestamp: z.string().describe("ISO 8601 date of departure"),
-            gate: z.string().describe("Departure gate"),
-            terminal: z.string().describe("Departure terminal"),
-          }),
-          arrival: z.object({
-            cityName: z.string().describe("Name of the arrival city"),
-            airportCode: z.string().describe("Code of the arrival airport"),
-            timestamp: z.string().describe("ISO 8601 date of arrival"),
-            gate: z.string().describe("Arrival gate"),
-            terminal: z.string().describe("Arrival terminal"),
-          }),
-          passengerName: z.string().describe("Name of the passenger"),
-        }),
-        execute: async (props) => {
-          const { totalPriceInUSD } = await generateReservationPrice(props);
-          const session = await auth();
-
-          const id = generateUUID();
-
-          if (session && session.user && session.user.id) {
-            await createReservation({
-              id,
-              userId: session.user.id,
-              details: { ...props, totalPriceInUSD },
-            });
-
-            return { id, ...props, totalPriceInUSD };
-          } else {
+            const data = await response.json();
+            
             return {
-              error: "User is not signed in to perform this action!",
+              repositories: data.items.map((repo: any) => ({
+                name: repo.name,
+                fullName: repo.full_name,
+                description: repo.description,
+                stars: repo.stargazers_count,
+                language: repo.language,
+                url: repo.html_url,
+                topics: repo.topics,
+                openIssues: repo.open_issues_count,
+              })),
+              total: data.total_count,
             };
+          } catch (error) {
+            return { error: "Error searching for repositories" };
           }
         },
       },
-      authorizePayment: {
-        description:
-          "User will enter credentials to authorize payment, wait for user to repond when they are done",
+      findGoodFirstIssues: {
+        description: "Find good first issues in a specific GitHub repository",
         parameters: z.object({
-          reservationId: z
-            .string()
-            .describe("Unique identifier for the reservation"),
+          repository: z.string().describe("Repository name in format 'owner/repo' (e.g., 'ethereum/web3.js')"),
         }),
-        execute: async ({ reservationId }) => {
-          return { reservationId };
-        },
-      },
-      verifyPayment: {
-        description: "Verify payment status",
-        parameters: z.object({
-          reservationId: z
-            .string()
-            .describe("Unique identifier for the reservation"),
-        }),
-        execute: async ({ reservationId }) => {
-          const reservation = await getReservationById({ id: reservationId });
+        execute: async ({ repository }) => {
+          try {
+            // Search for issues with good-first-issue label
+            const response = await fetch(
+              `https://api.github.com/search/issues?q=repo:${repository}+label:good-first-issue+state:open&sort=created&order=desc&per_page=10`,
+              {
+                headers: {
+                  "Accept": "application/vnd.github.v3+json",
+                  "User-Agent": "AI-Gemini-Chatbot"
+                }
+              }
+            );
 
-          if (reservation.hasCompletedPayment) {
-            return { hasCompletedPayment: true };
-          } else {
-            return { hasCompletedPayment: false };
+            if (!response.ok) {
+              return { error: "Failed to fetch issues from GitHub" };
+            }
+
+            const data = await response.json();
+            
+            return {
+              issues: data.items.map((issue: any) => ({
+                title: issue.title,
+                number: issue.number,
+                url: issue.html_url,
+                labels: issue.labels.map((l: any) => l.name),
+                createdAt: issue.created_at,
+                comments: issue.comments,
+              })),
+              total: data.total_count,
+            };
+          } catch (error) {
+            return { error: "Error fetching issues" };
           }
         },
       },
-      displayBoardingPass: {
-        description: "Display a boarding pass",
+      getRepositoryDetails: {
+        description: "Get detailed information about a specific GitHub repository",
         parameters: z.object({
-          reservationId: z
-            .string()
-            .describe("Unique identifier for the reservation"),
-          passengerName: z
-            .string()
-            .describe("Name of the passenger, in title case"),
-          flightNumber: z.string().describe("Flight number"),
-          seat: z.string().describe("Seat number"),
-          departure: z.object({
-            cityName: z.string().describe("Name of the departure city"),
-            airportCode: z.string().describe("Code of the departure airport"),
-            airportName: z.string().describe("Name of the departure airport"),
-            timestamp: z.string().describe("ISO 8601 date of departure"),
-            terminal: z.string().describe("Departure terminal"),
-            gate: z.string().describe("Departure gate"),
-          }),
-          arrival: z.object({
-            cityName: z.string().describe("Name of the arrival city"),
-            airportCode: z.string().describe("Code of the arrival airport"),
-            airportName: z.string().describe("Name of the arrival airport"),
-            timestamp: z.string().describe("ISO 8601 date of arrival"),
-            terminal: z.string().describe("Arrival terminal"),
-            gate: z.string().describe("Arrival gate"),
-          }),
+          repository: z.string().describe("Repository name in format 'owner/repo'"),
         }),
-        execute: async (boardingPass) => {
-          return boardingPass;
+        execute: async ({ repository }) => {
+          try {
+            const response = await fetch(
+              `https://api.github.com/repos/${repository}`,
+              {
+                headers: {
+                  "Accept": "application/vnd.github.v3+json",
+                  "User-Agent": "AI-Gemini-Chatbot"
+                }
+              }
+            );
+
+            if (!response.ok) {
+              return { error: "Failed to fetch repository details" };
+            }
+
+            const repo = await response.json();
+            
+            return {
+              name: repo.name,
+              fullName: repo.full_name,
+              description: repo.description,
+              stars: repo.stargazers_count,
+              forks: repo.forks_count,
+              language: repo.language,
+              url: repo.html_url,
+              topics: repo.topics,
+              openIssues: repo.open_issues_count,
+              hasWiki: repo.has_wiki,
+              hasIssues: repo.has_issues,
+              license: repo.license?.name,
+              defaultBranch: repo.default_branch,
+            };
+          } catch (error) {
+            return { error: "Error fetching repository details" };
+          }
         },
       },
     },

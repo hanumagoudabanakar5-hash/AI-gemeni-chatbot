@@ -1,10 +1,10 @@
 <a href="https://chat.vercel.ai/">
   <img alt="Next.js 14 and App Router-ready AI chatbot." src="app/(chat)/opengraph-image.png">
-  <h1 align="center">Next.js Gemini Chatbot</h1>
+  <h1 align="center">GitHub Good First Issue Finder - AI Chatbot</h1>
 </a>
 
 <p align="center">
-  An Open-Source AI Chatbot Template Built With Next.js and the AI SDK by Vercel.
+  An AI-Powered Chatbot to Help Engineering Students Find Good First Issues in Decentralized Application Repositories
 </p>
 
 <p align="center">
@@ -15,8 +15,16 @@
 </p>
 <br/>
 
+## About
+
+This chatbot helps engineering students (especially 2nd year students) discover beginner-friendly repositories and good first issues in the decentralized applications (DApps) ecosystem. It leverages AI to search GitHub for repositories with topics like blockchain, Web3, Ethereum, DeFi, and more, then helps identify suitable issues for newcomers to contribute to.
+
 ## Features
 
+- **AI-Powered Repository Search**: Uses Google Gemini to intelligently search for DApp repositories
+- **Good First Issue Detection**: Automatically finds issues labeled as "good-first-issue" or "beginner-friendly"
+- **Skill Level Matching**: Filters repositories and issues based on the student's experience level
+- **Decentralized Tech Focus**: Specializes in blockchain, Web3, smart contracts, IPFS, and related technologies
 - [Next.js](https://nextjs.org) App Router
   - Advanced routing for seamless navigation and performance
   - React Server Components (RSCs) and Server Actions for server-side rendering and increased performance
@@ -32,6 +40,16 @@
   - [Vercel Blob](https://vercel.com/storage/blob) for efficient object storage
 - [NextAuth.js](https://github.com/nextauthjs/next-auth)
   - Simple and secure authentication
+
+## How to Use
+
+Simply ask the chatbot questions like:
+- "Find me good first issues in decentralized app repositories"
+- "Show me beginner-friendly Web3 projects"
+- "What are good blockchain repositories for 2nd year engineering students?"
+- "Find Ethereum projects with good first issues"
+
+The chatbot will search GitHub and provide personalized recommendations based on your skill level and interests.
 
 ## Model Providers
 

@@ -39,3 +39,5 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+gemini-chatbot-main/
+gemini-chatbot-main.zip
